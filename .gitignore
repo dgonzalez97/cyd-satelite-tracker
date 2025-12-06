@@ -1,0 +1,8 @@
+# Local build artifacts
+build/
+
+# Component manager downloads
+managed_components/
+
+# Local notes / drafts not for commit
+.notes/

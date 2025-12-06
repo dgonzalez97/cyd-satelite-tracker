@@ -1,0 +1,18 @@
+
+{
+    "configurations": [
+        {
+            "name": "ESP-IDF",
+            "compilerPath": "${IDF_PATH}/tools/toolchain/esp32/bin/xtensa-esp32-elf-gcc",
+            "includePath": [
+                "${IDF_PATH}/components/**",
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "ESP_PLATFORM"
+            ],
+            "intelliSenseMode": "gcc-x86"
+        }
+    ],
+    "version": 4
+}
