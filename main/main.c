@@ -1,37 +1,45 @@
+#include <dirent.h>
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
+#include "driver/sdmmc_host.h"
+
 #include "esp_log.h"
+#include "esp_rom_sys.h"
+#include "esp_timer.h"
+#include "esp_vfs_fat.h"  //VFS https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/storage/vfs.html
+
+#include "sdmmc_cmd.h"
+
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_vendor.h"
 #include "esp_lcd_st7796.h"
 #include "esp_lcd_touch.h"
 #include "esp_lcd_touch_xpt2046.h"
-#include "esp_timer.h"
-#include "esp_rom_sys.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "esp_vfs_fat.h"  //VFS https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/storage/vfs.html
-#include "sdmmc_cmd.h"
-#include "driver/sdmmc_host.h" 
-#include <dirent.h> 
-#include <errno.h>
 
-#define LCD_HOST SPI2_HOST
 
 // ESP32-035 (littleCdev) pinout, matches Hardware.md in https://github.com/littleCdev/ESP32-035
 // TFT ST7796 over SPI
-#define PIN_NUM_MOSI 13
-#define PIN_NUM_MISO 12
-#define PIN_NUM_CLK 14
-#define PIN_NUM_CS 15
-#define PIN_NUM_DC 2
-#define PIN_NUM_RST 3
-#define PIN_NUM_BCKL 27
+#define PIN_NUM_MOSI    13
+#define PIN_NUM_MISO    12
+#define PIN_NUM_CLK     14
+#define PIN_NUM_CS      15
+#define LCD_HOST        SPI2_HOST
+
+#define PIN_NUM_DC       2
+#define PIN_NUM_RST      3
+#define PIN_NUM_BCKL     27
 
 // Resistive touch (XPT2046) shares SPI bus
-#define PIN_NUM_TOUCH_CS 33
-#define PIN_NUM_TOUCH_IRQ 36
+#define PIN_NUM_TOUCH_CS    33
+#define PIN_NUM_TOUCH_IRQ   36
 
 #define LCD_H_RES 320  // 3.5 inch ST7796 resolution 
 #define LCD_V_RES 480
@@ -43,8 +51,9 @@
 #define SD_PIN_MOSI  23
 #define SD_PIN_MISO  19
 #define SD_PIN_CS    5
+#define SD_HOST      SPI3_HOST
 
-static const char *TAG = "lcd_demo";
+static const char *TAG = "lcd_sd_demo";
 
 static void enable_backlight(void) {
     gpio_config_t bklt_config = {
@@ -66,23 +75,6 @@ static void fill_screen(esp_lcd_panel_handle_t panel, uint16_t color) {
     }
 }
 
-static void list_root_dir(void)
-{
-    ESP_LOGI(TAG, "Listing files in %s", MOUNT_POINT);
-
-    DIR *dir = opendir(MOUNT_POINT);
-    if (!dir) {
-        ESP_LOGE(TAG, "opendir(%s) failed", MOUNT_POINT);
-        return;
-    }
-
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL) {
-        ESP_LOGI(TAG, "  %s", entry->d_name);
-    }
-
-    closedir(dir);
-}
 
 static void sdcard_demo_sdspi(void)
 {
@@ -98,9 +90,8 @@ static void sdcard_demo_sdspi(void)
 
     sdmmc_card_t *card;
 
-    // Use SDSPI host, but force slot to VSPI (SPI3_HOST) so we don't conflict with TFT
     sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-    host.slot = SPI3_HOST;
+    host.slot = SD_HOST;
     host.max_freq_khz = SDMMC_FREQ_DEFAULT;  // safe default
 
     spi_bus_config_t bus_cfg = {
@@ -109,8 +100,7 @@ static void sdcard_demo_sdspi(void)
         .sclk_io_num = SD_PIN_CLK,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
-        // keep this small-ish to avoid txdata > host maximum
-        .max_transfer_sz = 4 * 512,   // 4 sectors
+        .max_transfer_sz = 4 * 512,   // 4 sectors - 
     };
 
     ret = spi_bus_initialize(host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
@@ -137,13 +127,9 @@ static void sdcard_demo_sdspi(void)
 
     ESP_LOGI(TAG, "Filesystem mounted");
 
-    // Card info
     sdmmc_card_print_info(stdout, card);
+    
 
-    // List existing files
-    list_root_dir();
-
-    // Create a small test file
     const char *file_path = MOUNT_POINT "/DEMOTEST.txt";
     ESP_LOGI(TAG, "Creating test file: %s", file_path);
     
@@ -155,11 +141,31 @@ static void sdcard_demo_sdspi(void)
         fclose(f);
         ESP_LOGI(TAG, "Test file written");
     }
+    
+    ESP_LOGI(TAG, "Listing files in %s", MOUNT_POINT);
+    
+    errno = 0;
+    DIR *dir = opendir(MOUNT_POINT);
+    if (!dir) {
+        ESP_LOGE(TAG, "opendir(%s) failed, errno=%d (%s)", MOUNT_POINT, errno, strerror(errno));
+        return;
+    }
+    
+    errno = 0;
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        ESP_LOGI(TAG, " %s", entry->d_name);
+    }
+    
+    if (errno != 0) {
+        ESP_LOGE(TAG, "readdir(%s) failed, errno=%d (%s)",MOUNT_POINT, errno, strerror(errno));
+    }
 
-    // Re-list directory to show new file
-    list_root_dir();
-
-    // Optional cleanup, not needed for demo.
+    if (closedir(dir) != 0) {
+        ESP_LOGW(TAG, "closedir(%s) failed, errno=%d (%s)", MOUNT_POINT, errno, strerror(errno));
+    
+    }
+        // Optional cleanup, not needed for demo.
     // esp_vfs_fat_sdcard_unmount(MOUNT_POINT, card);
     // spi_bus_free(host.slot);
 }
@@ -210,9 +216,9 @@ void app_main(void) {
 
     ESP_LOGI(TAG, "Filling screen with test colors");
     fill_screen(panel_handle, 0xF800); // Red
-    esp_rom_delay_us(300000);
+    vTaskDelay(pdMS_TO_TICKS(300));
     fill_screen(panel_handle, 0xFFFF); // White
-    esp_rom_delay_us(300000);
+    vTaskDelay(pdMS_TO_TICKS(300));
 
     // XPT2046 touch via esp_lcd_touch driver on shared SPI bus (bitbanging from CYD examples)
     esp_lcd_panel_io_handle_t tp_io = NULL;
@@ -253,7 +259,6 @@ void app_main(void) {
             uint8_t point_count = 0;
 
             if (esp_lcd_touch_get_data(touch_handle, points, &point_count, 1) == ESP_OK && point_count > 0){
-
                 uint16_t x = points[0].x;
                 uint16_t y = points[0].y;
                 uint16_t strength = points[0].strength;
