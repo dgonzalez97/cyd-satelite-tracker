@@ -61,6 +61,7 @@ direct_dependencies:
 - atanisoft/esp_lcd_touch_xpt2046
 - espressif/esp_lcd_st7796
 - espressif/esp_lcd_touch
-manifest_hash: c5b138e52e7983c759e8f097f67a7b244b93bf3722a2836878c57b26507df001
+- idf
+manifest_hash: 95c52b5ffecac49f899dfbf61599064ea0cea43bd15df7cc20460a40dc8c87ba
 target: esp32
 version: 2.0.0

@@ -1,5 +1,12 @@
+file(GLOB_RECURSE SOURCES "src/*.c")
+
 idf_component_register(
-    SRCS "main.c"
-    INCLUDE_DIRS "."
-    REQUIRES driver esp_lcd esp_timer fatfs sdmmc
+    SRCS ${SOURCES}
+    INCLUDE_DIRS "inc"
+    REQUIRES
+        esp_lcd
+        esp_timer
+        fatfs
+        sdmmc
+        driver
 )
