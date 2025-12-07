@@ -9,9 +9,12 @@ idf.py is used for build/debug of this project.
 HW explanation comes from this reference project. CYD devices are little hackier and several version from several suppliers that try to cut corners. GPIOS/Other stuff will work from the ground up. To check if your board is compatible with this project. The first boilerplate/demo with Touch Display is stored in a branch.
 
 Based on the reference project: https://github.com/littleCdev/ESP32-035
+CYD Bible : https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display
+
+SD card example created from based from : https://randomnerdtutorials.com/esp32-microsd-card-arduino
 
 
-## Build & flash (ESP-IDF v5.1.2)
+## Build & flash (ESP-IDF v5.1.6)
 ```bash
 source ~/esp/esp-idf/export.sh
 cd /home/dgonzalez/tft-satelite-tracker

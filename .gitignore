@@ -6,3 +6,4 @@ managed_components/
 
 # Local notes / drafts not for commit
 .notes/
+.vscode/
