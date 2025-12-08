@@ -7,8 +7,8 @@
 #include "freertos/task.h"
 
 #include "driver/gpio.h"
-#include "driver/spi_master.h"
 #include "driver/sdmmc_host.h"
+#include "driver/spi_master.h"
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -30,11 +30,11 @@
 
 static const char *TAG = "main";
 
-void app_main(void)
-{
+void app_main(void) {
     ESP_LOGI(TAG, "App start");
 
-    display_t display = { 0 };
+    bool touch_debug = false;
+    display_t display = (display_t){0};
 
     ESP_ERROR_CHECK(display_init(&display));
 
@@ -43,21 +43,14 @@ void app_main(void)
         ESP_LOGE(TAG, "sdcard_demo_sdspi failed: 0x%x", sd_ret);
     }
 
-    ui_init(&display);
+    ESP_ERROR_CHECK(display_lvgl_init(&display));
+    ui_init();
 
     while (true) {
-        if (display.touch && esp_lcd_touch_read_data(display.touch) == ESP_OK) {
-            esp_lcd_touch_point_data_t points[1];
-            uint8_t point_count = 0;
-
-            if (esp_lcd_touch_get_data(display.touch, points, &point_count, 1) == ESP_OK && point_count > 0) {
-                uint16_t x = points[0].x;
-                uint16_t y = points[0].y;
-                uint16_t strength = points[0].strength;
-
-                ESP_LOGI(TAG, "Touch: x=%u y=%u strength=%u", x, y, strength);
-            }
+        uint16_t x = 0, y = 0, strength = 0;
+        if (touch_debug && display_poll_touch(&display, &x, &y, &strength)) {
+            ESP_LOGI(TAG, "Touch: x=%u y=%u strength=%u", x, y, strength);
         }
-        vTaskDelay(pdMS_TO_TICKS(1));
+        vTaskDelay(pdMS_TO_TICKS(30));
     }
 }

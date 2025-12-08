@@ -1,6 +1,3 @@
 #pragma once
 
-#include "display.h"
-
-
-void ui_init(display_t *display);
+void ui_init(void);
