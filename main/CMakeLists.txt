@@ -10,3 +10,6 @@ idf_component_register(
         sdmmc
         driver
 )
+
+lvgl_port_create_c_image("images/world_380x240.png" "images/""RGB565" "NONE")
+lvgl_port_add_images(${COMPONENT_LIB} "images/")

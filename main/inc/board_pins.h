@@ -18,8 +18,8 @@
 #define PIN_NUM_TOUCH_CS    33
 #define PIN_NUM_TOUCH_IRQ   36
 
-#define LCD_H_RES 320  // 3.5 inch ST7796 resolution 
-#define LCD_V_RES 480
+#define LCD_H_RES 480  // 3.5 inch ST7796 resolution 
+#define LCD_V_RES 320
 
 //SDCard 
 #define MOUNT_POINT "/sdcard"   
