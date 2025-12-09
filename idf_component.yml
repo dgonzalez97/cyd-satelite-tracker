@@ -1,6 +1,0 @@
-## Auto-managed by the IDF Component Manager.
-dependencies:
-  idf: ">=5.0"
-  espressif/esp_lcd_st7796: "^1.0.0"
-  espressif/esp_lcd_touch: "^1.2.0"
-  atanisoft/esp_lcd_touch_xpt2046: "^1.0.6"
