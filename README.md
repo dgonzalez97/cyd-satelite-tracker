@@ -18,6 +18,8 @@ SD card example created from based from : [text](https://randomnerdtutorials.com
 
 Image taken from [text](https://visibleearth.nasa.gov/images/73726/june-blue-marble-next-generation-w-topography-and-bathymetry)
 
+The orbit calculation (propagation?) is from [text](https://github.com/gunvirranu/perturb), which is based on David Vallado's SPG4
+
 ## Build & flash (ESP-IDF v5.1.6) // Also to be used with ESP-IDF VSCode Extension
 requisites : esp-idf 5.1.6 & build-essentials
 
