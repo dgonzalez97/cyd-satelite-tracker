@@ -48,21 +48,18 @@ esp_err_t orbit_sat_create_from_tle(const char *tle_line1, const char *tle_line2
     *out_sat = handle;
 
     auto epoch_dt = sat.epoch().to_datetime();
-    ESP_LOGI(TAG, "Satellite created from TLE. Epoch %04d-%02d-%02d %02d:%02d:%06.3f", 
-        epoch_dt.year, epoch_dt.month, epoch_dt.day, epoch_dt.hour, epoch_dt.min, epoch_dt.sec);
+    ESP_LOGI(TAG, "Satellite created. Epoch %04d-%02d-%02d %02d:%02d:%06.3f", epoch_dt.year, epoch_dt.month, epoch_dt.day, epoch_dt.hour, epoch_dt.min, epoch_dt.sec);
 
     return ESP_OK;
 }
 
 void orbit_sat_destroy(orbit_sat_t *sat) {
-    if (!sat) {
-        return;
-    }
+    if (!sat) return;
+    
     ESP_LOGI(TAG, "Destroy satellite handle");
     delete sat;
 }
 
-// Unix UTC seconds -> JulianDate
 static JulianDate unix_to_julian(int64_t unix_time_sec) {
     time_t t = (time_t)unix_time_sec;
     struct tm tm_utc;
@@ -86,9 +83,6 @@ esp_err_t orbit_sat_propagate_unix(orbit_sat_t *sat, int64_t unix_time_sec, orbi
     }
 
     JulianDate t = unix_to_julian(unix_time_sec);
-    double delta_days = t - sat->sat.epoch();
-
-    ESP_LOGI(TAG, "Propagate unix=%lld, delta_days=%.6f", (long long)unix_time_sec, delta_days);
 
     StateVector sv;
     Sgp4Error err = sat->sat.propagate(t, sv);
@@ -101,8 +95,81 @@ esp_err_t orbit_sat_propagate_unix(orbit_sat_t *sat, int64_t unix_time_sec, orbi
     out_eci->y = sv.position[1];
     out_eci->z = sv.position[2];
 
-    ESP_LOGI(TAG, "ECI [km] x=%.3f y=%.3f z=%.3f", out_eci->x, out_eci->y, out_eci->z);
+    return ESP_OK;
+}
+
+// multi-sat
+
+esp_err_t orbit_system_init(orbit_system_t *sys) {
+    if (!sys)
+        return ESP_ERR_INVALID_ARG;
+    for (int i = 0; i < ORBIT_MAX_SATS; ++i) {
+        sys->sats[i] = nullptr;
+    }
+    sys->count = 0;
+    return ESP_OK;
+}
+
+esp_err_t orbit_system_add_sat(orbit_system_t *sys, orbit_sat_t *sat, int *out_index) {
+    if (!sys || !sat)
+        return ESP_ERR_INVALID_ARG;
+
+    for (int i = 0; i < ORBIT_MAX_SATS; ++i) {
+        if (sys->sats[i] == nullptr) {
+            sys->sats[i] = sat;
+            if (sys->count < (uint8_t)(i + 1)) {
+                sys->count = (uint8_t)(i + 1);
+            }
+            if (out_index)
+                *out_index = i;
+            ESP_LOGI(TAG, "orbit_system_add_sat: index %d", i);
+            return ESP_OK;
+        }
+    }
+
+    ESP_LOGE(TAG, "orbit_system_add_sat: no free slots");
+    return ESP_ERR_NO_MEM;
+}
+
+orbit_sat_t *orbit_system_get_sat(const orbit_system_t *sys, int index) {
+    if (!sys || index < 0 || index >= ORBIT_MAX_SATS)
+        return nullptr;
+    return sys->sats[index];
+}
+
+void orbit_system_clear(orbit_system_t *sys, bool destroy_sats) {
+    if (!sys)
+        return;
+    for (int i = 0; i < ORBIT_MAX_SATS; ++i) {
+        if (destroy_sats && sys->sats[i]) {
+            orbit_sat_destroy(sys->sats[i]);
+        }
+        sys->sats[i] = nullptr;
+    }
+    sys->count = 0;
+}
+
+esp_err_t orbit_system_propagate_unix(const orbit_system_t *sys, int64_t unix_time_sec, orbit_eci_t *out_array, int out_array_len) {
+    if (!sys || !out_array)
+        return ESP_ERR_INVALID_ARG;
+
+    int n = (int)sys->count;
+    if (out_array_len < n)
+        return ESP_ERR_INVALID_SIZE;
+
+    for (int i = 0; i < n; ++i) {
+        if (sys->sats[i]) {
+            esp_err_t err = orbit_sat_propagate_unix(sys->sats[i], unix_time_sec, &out_array[i]);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "orbit_system_propagate_unix: sat %d failed (0x%x)", i, err);
+                return err;
+            }
+        } else {
+            out_array[i].x = out_array[i].y = out_array[i].z = 0.0;
+        }
+    }
 
     return ESP_OK;
 }
-} 
+
+} // extern "C"

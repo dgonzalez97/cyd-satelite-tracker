@@ -1,9 +1,12 @@
-file(GLOB_RECURSE SOURCES "src/*.c")
+file(GLOB_RECURSE SOURCES
+    "src/*.c"
+    "orbits/*.c"
+    "orbits/*.cpp"
+)
 
 idf_component_register(
     SRCS
         ${SOURCES}
-        "orbits/orbit_perturb.cpp"
     INCLUDE_DIRS
         "inc"
         "orbits"
