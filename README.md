@@ -11,14 +11,14 @@ HW explanation comes from this reference project.
 CYD devices are little hackier and several version from several suppliers that try to cut corners. GPIOS/Other stuff will work from the ground up. 
 To check if your board is compatible with this project. The first boilerplate/demo with Touch Display is stored in a branch. -- If not, GPIOs are easily changed in board_pins.h. The demo is a brief modification of the test.c files that lvgl provides.
 
-Based on the reference project: [text](https://github.com/littleCdev/ESP32-035)
-CYD Bible : [text](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display)
+Based on the reference project: [esp32-035](https://github.com/littleCdev/ESP32-035)
+CYD Bible : [witnessmenow](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display)
 
-SD card example created from based from : [text](https://randomnerdtutorials.com/esp32-microsd-card-arduino)
+SD card example created from based from : [tutorial](https://randomnerdtutorials.com/esp32-microsd-card-arduino)
 
-Image taken from [text](https://visibleearth.nasa.gov/images/73726/june-blue-marble-next-generation-w-topography-and-bathymetry)
+Image taken from [blue marble nasa](https://visibleearth.nasa.gov/images/73726/june-blue-marble-next-generation-w-topography-and-bathymetry)
 
-The orbit calculation (propagation?) is from [text](https://github.com/gunvirranu/perturb), which is based on David Vallado's SPG4
+The orbit calculation (propagation?) is from [github-perturb](https://github.com/gunvirranu/perturb), which is based on David Vallado's SPG4
 
 ## Build & flash (ESP-IDF v5.1.6) // Also to be used with ESP-IDF VSCode Extension
 requisites : esp-idf 5.1.6 & build-essentials
