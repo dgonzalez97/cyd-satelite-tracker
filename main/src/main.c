@@ -1,5 +1,6 @@
 #include <dirent.h>
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -25,6 +26,7 @@
 
 #include "board_pins.h"
 #include "display.h"
+#include "orbit.h"
 #include "sdcard.h"
 #include "ui.h"
 
@@ -45,6 +47,22 @@ void app_main(void) {
 
     ESP_ERROR_CHECK(display_lvgl_init(&display));
     ui_init();
+
+    orbit_sat_t *lur1 = NULL;
+    ESP_LOGI(TAG, "Creating LUR-1 satellite from TLE");
+    ESP_ERROR_CHECK(orbit_sat_create_from_tle(ORBIT_TLE_LUR1_L1, ORBIT_TLE_LUR1_L2, &lur1));
+
+    // UTC 2025-12-09 23:00:00
+    int64_t now_unix = 1765321200;
+    ESP_LOGI(TAG, "Using now_unix=%lld (UTC 2025-12-09 23:00:00)", (long long)now_unix);
+
+    orbit_eci_t lur1_eci = {0};
+    esp_err_t orbit_ret = orbit_sat_propagate_unix(lur1, now_unix, &lur1_eci);
+    if (orbit_ret == ESP_OK) {
+        ESP_LOGI(TAG, "LUR-1 ECI [km]: x=%.3f y=%.3f z=%.3f", lur1_eci.x, lur1_eci.y, lur1_eci.z);
+    } else {
+        ESP_LOGE(TAG, "orbit_sat_propagate_unix failed: 0x%x", orbit_ret);
+    }
 
     while (true) {
         uint16_t x = 0, y = 0, strength = 0;
