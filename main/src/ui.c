@@ -22,7 +22,7 @@ LV_IMG_DECLARE(world_480x320);
 static void map_touch_cb(lv_event_t *e) {
     lv_event_code_t code = lv_event_get_code(e);
 
-    if (code != LV_EVENT_POINTER_DOWN && code != LV_EVENT_POINTER_UP && code != LV_EVENT_PRESSING && code != LV_EVENT_CLICKED) {
+    if (code != LV_EVENT_PRESSED && code != LV_EVENT_RELEASED && code != LV_EVENT_PRESSING && code != LV_EVENT_CLICKED) {
         return;
     }
 
